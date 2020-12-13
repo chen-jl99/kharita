@@ -21,7 +21,7 @@ if __name__ == '__main__':
 	HEADING_ANGLE_TOLERANCE = 100
 	FILE_CODE = 'data_uic'
 	DATA_PATH = 'data'
-	drawmap = False
+	drawmap = False #是否对结果进行可视化
 	(opts, args) = getopt.getopt(sys.argv[1:], "f:m:p:r:s:a:d:h")
 	for o, a in opts:
 		if o == "-f":
