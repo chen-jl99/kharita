@@ -20,8 +20,8 @@ if __name__ == '__main__':
     print(vincenty(LL, (LL[0] + 1, LL[1])).meters, vincenty(LL, (LL[0], LL[1] + 1)).meters)
     latconst = vincenty(LL, (LL[0] + 1, LL[1])).meters;
     lonconst = vincenty(LL, (LL[0], LL[1] + 1)).meters
-    theta = 150;
-    SEEDRADIUS = 100;
+    theta = 150; #the densification distance (sr) in meters
+    SEEDRADIUS = 100; #the radius (cr) in meters used for the clustering
     datafile = './data/gps_points_uic.csv' #'gps_points_01-10'
     noise_percent = -1
     max_noise_radius = -1
@@ -39,9 +39,9 @@ if __name__ == '__main__':
             exit()
     print('data:', datafile,'theta: ', theta, 'seed radius', SEEDRADIUS)
     nsamples = 20000000;
-    datapointwts = getdata(nsamples, datafile, '2010-10-01', '2015-10-08');
+    datapointwts = getdata(nsamples, datafile, '2019-10-01', '2020-10-08'); #导入数据
     print('all datapoints ', len(datapointwts))
-    datapointwts = [xx for xx in datapointwts if xx[3] >= 10]; #filter low speed points
+    datapointwts = [xx for xx in datapointwts if xx[3] >= 5]; #filter low speed points
     print('datapoints with speed>=5kmph: ', len(datapointwts))
     seeds = computeclusters(datapointwts, 50, SEEDRADIUS,theta); # compute k-means; seeds cluster centroids
     print('clusters: ',len(seeds), time.time() - start)
