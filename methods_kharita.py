@@ -159,13 +159,13 @@ def coocurematrix(datapointwts,seeds,theta):
             if datapointwts[ii-1][-1]<=datapointwts[ii][-1] and datapointwts[ii-1][-1]>=datapointwts[ii][-1]-121 and taxidist(datapointwts[ii-1],datapointwts[ii],theta)<1000:
                 cd1 = p2cluster[ii-1]; cd2 = p2cluster[ii];
                 if (not cd1== cd2):
-                    gedges1[(cd1, cd2)] =  gedges1.get((cd1,cd2),0)+1;
+                    gedges1[(cd1, cd2)] =  gedges1.get((cd1,cd2),0)+1; #连接两个聚类中心的边数+1
 #                LL = datapointwts[ii]
 #                if (LL[0]>-87.657) and (np.abs(LL[0])>81.6568) and (LL[1]>41.8755) and (LL[1]<41.8765) and (np.abs(LL[2]+20)<40):
 #                    print(cd1,cd2,LL[:3],seeds[cd1][:2],seeds[cd2][:2])
     gedges2 = {gg: gedges1[gg] for gg in gedges1};
     for gg in gedges2:
-        if gg in gedges1 and (gg[1],gg[0]) in gedges1:
+        if gg in gedges1 and (gg[1],gg[0]) in gedges1: #两个聚类中心互通
             if gedges1[(gg[1],gg[0])]>gedges1[gg]:
                 del gedges1[gg]
             elif gedges1[(gg[1],gg[0])]==gedges1[gg]:
@@ -241,6 +241,7 @@ def point2cluster(datapointwts,seeds,theta): #寻找距离每一个点最近的s
     return(cluster,p2cluster)
 
 def splitclusters(datapointwts,seeds,theta):
+    #根据中心点的方位角，将cluster分为两半
     std = {}; seeds1 = []; seedweight = [];
     cluster, p2cluster = point2cluster(datapointwts, seeds,theta);
     for cl in cluster:
@@ -295,7 +296,7 @@ def computeclusters(datapointwts,maxiteration,SEEDRADIUS,theta):
         seeds = nseeds;
         oldcost = cost;
     for ii in range(1):
-        seeds, seedweight = splitclusters(datapointwts, seeds,theta);
+        seeds, seedweight = splitclusters(datapointwts, seeds,theta); #按方位角分隔cluster
     return(seeds)
 
 def printedges(gedges, seeds,datapointwts,theta):
