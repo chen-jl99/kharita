@@ -37,11 +37,12 @@ def getdata(nsamples, datafile, datestart, datestr):
             line = line[:-1].decode('ascii', 'ignore')
             zz = line.split("\t")
             if zz[6][:10]<datestr and zz[6][:10]>=datestart: 
-                ts = time.mktime(datetime.datetime.strptime(zz[6][:-3], "%Y-%m-%d %H:%M:%S").timetuple())
+                ts = time.mktime(datetime.datetime.strptime(zz[6][:-3], "%Y-%m-%d %H:%M:%S").timetuple()) #以秒为单位
                 LL = (float(zz[0][:8]),float(zz[1][:8])); angle = float(zz[-1])-180; speed = float(zz[5])
-                if j>1:
-                    if oldts<ts and oldts>ts-20:
-                        speed = int(geodist(LL,oldLL)/(ts-oldts)*3.6)
+#                 if j>1:
+# 		    #自动计算速度（单位km/h）
+#                     if oldts<ts and oldts>ts-20:
+#                         speed = int(geodist(LL,oldLL)/(ts-oldts)*3.6)
                 lats.append(LL[0])
                 lons.append(LL[1])
                 pointwts = (LL[0],LL[1],angle,speed,j,ts);
@@ -65,28 +66,30 @@ def is_power2(num):
 	return num != 0 and ((num & (num - 1)) == 0)
 
 def getseeds(datapoint,radius,theta):
-    chosen = []; seeds = [];
+    #选取初始种子
+    chosen = []; seeds = []; #start with an empty centroid list
 #    random.shuffle(datapoint)
     periodsampl = 500000
     for p in datapoint:
         chosen.append(p);
-    for j,p in enumerate(chosen):
+    for j,p in enumerate(chosen): #go through the GPS points sequentially.
         ok = -1;
         if j<periodsampl:
+	    #新增的初始中心点需要满足与已有的重新点（seed）距离大于一定的阈值
             for q in seeds:
                 if taxidist(p,q,theta)<radius:
                     ok = 1
                     break;
             if ok <1:
-                seeds.append(p)
+                seeds.append(p) #A GPS point is added to the centroid list if there are no other centroid within a specified radius
         else:
             if j%periodsampl == 0:# and (is_power2(int(j/1000))):
 #                print(j,time.time()-start)
                 S = [(lonconst * xx[0], latconst * xx[1], theta / 180 * (xx[2]+45)) for xx in seeds];
-                nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(S)
+                nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(S) #用knn算法来提升效率
                 X = [(lonconst * xx[0], latconst * xx[1], theta / 180 * (xx[2]+45)) for xx in chosen[j:min(len(chosen),j+periodsampl)]];
                 distances, indices = nbrs.kneighbors(X)
-            if distances[j%periodsampl][0] >radius:
+            if distances[j%periodsampl][0] >radius: #大于阈值
                 seeds.append(p)
     print('seeds: ', len(seeds))
     return (seeds)
@@ -217,7 +220,7 @@ def prunegraph(gedges,seeds):
           del gedges[gg];
     return (gedges)
 
-def point2cluster(datapointwts,seeds,theta):
+def point2cluster(datapointwts,seeds,theta): #寻找距离每一个点最近的seed
     cluster = {};p2cluster = []; gedges = {}; gedges1 = {}; nedges = {}; std = {}; seeds1 = []; seedweight = [];
     X = [(lonconst * xx[0], latconst * xx[1], theta / 180 * xx[2]) for xx in datapointwts];    S = [(lonconst * xx[0], latconst * xx[1], theta / 180 * xx[2]) for xx in seeds];
     Xrot = [(lonconst * xx[0], latconst * xx[1], theta / 180 * (xx[2]%360)) for xx in datapointwts];    Srot = [(lonconst * xx[0], latconst * xx[1], theta / 180 * (xx[2]%360)) for xx in seeds];
@@ -281,13 +284,13 @@ def printclusters(seeds):
             fdist.write("%s %s %s\n" % (pp[0],pp[1],pp[2]))
 
 def computeclusters(datapointwts,maxiteration,SEEDRADIUS,theta):
-    datapoint = [(x[0], x[1], x[2]) for x in datapointwts];
-    seeds = getseeds(datapoint, SEEDRADIUS,theta);
+    datapoint = [(x[0], x[1], x[2]) for x in datapointwts]; #经度、纬度、方向角
+    seeds = getseeds(datapoint, SEEDRADIUS,theta); #初始种子
     oldcost = 100000000;
     for ss in range(maxiteration):
-        nseeds,cost,avgspeed,pointsperseed = newmeans(datapointwts,seeds,theta)
+        nseeds,cost,avgspeed,pointsperseed = newmeans(datapointwts,seeds,theta) #迭代
         print(ss, cost)
-        if (oldcost-cost)/cost<0.0001:
+        if (oldcost-cost)/cost<0.0001: #判断迭代是否停止
             break;
         seeds = nseeds;
         oldcost = cost;
