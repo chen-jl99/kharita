@@ -153,17 +153,19 @@ def getpossibleedges(datapointwts,seeds):
 
 def coocurematrix(datapointwts,seeds,theta):
     startcoocurence = time.time();    gedges1 = {}; std = {};
-    cluster, p2cluster = point2cluster(datapointwts, seeds,theta);
+    cluster, p2cluster = point2cluster(datapointwts, seeds,theta); 
+	#cluster：每个元素是一个集合，第i个集合中的点离第i个中心点最近
+	#p2cluster：第i个元素为j表示第i个数据点离第j个中心点最近
     for ii, xx in enumerate(datapointwts):
         if ii>1:
             if datapointwts[ii-1][-1]<=datapointwts[ii][-1] and datapointwts[ii-1][-1]>=datapointwts[ii][-1]-121 and taxidist(datapointwts[ii-1],datapointwts[ii],theta)<1000:
-                cd1 = p2cluster[ii-1]; cd2 = p2cluster[ii];
+                cd1 = p2cluster[ii-1]; cd2 = p2cluster[ii]; #获取这两个数据点的中心点
                 if (not cd1== cd2):
-                    gedges1[(cd1, cd2)] =  gedges1.get((cd1,cd2),0)+1; #连接两个聚类中心的边数+1
+                    gedges1[(cd1, cd2)] =  gedges1.get((cd1,cd2),0)+1; #连接两个中心点的边数+1
 #                LL = datapointwts[ii]
 #                if (LL[0]>-87.657) and (np.abs(LL[0])>81.6568) and (LL[1]>41.8755) and (LL[1]<41.8765) and (np.abs(LL[2]+20)<40):
 #                    print(cd1,cd2,LL[:3],seeds[cd1][:2],seeds[cd2][:2])
-    gedges2 = {gg: gedges1[gg] for gg in gedges1};
+    gedges2 = {gg: gedges1[gg] for gg in gedges1}; #复制gedges1
     for gg in gedges2:
         if gg in gedges1 and (gg[1],gg[0]) in gedges1: #两个聚类中心互通
             if gedges1[(gg[1],gg[0])]>gedges1[gg]:
@@ -183,13 +185,13 @@ def coocurematrix(datapointwts,seeds,theta):
 #        AA = anglebetweentwopoints(seeds[cd1], seeds[cd2]);    AArev = anglebetweentwopoints(seeds[cd2], seeds[cd1]);
 #        print(int(angledist(AA, seeds[cd1][2]) + angledist(AA, seeds[cd2][2])), int(angledist(AArev, seeds[cd1][2]) + angledist(AArev, seeds[cd2][2])))
     for gg in gedges2:
-        neighbors[gg[0]].append(gedges1[gg])
+        neighbors[gg[0]].append(gedges1[gg]) #记录所有发出的边
     for ss in neighbors:
         neighbors[ss] = sorted(neighbors[ss])
 #        print(ss,len(neighbors[ss]),sum(neighbors[ss]),neighbors[ss])
     for gg in gedges2:
         hh = min(sum(neighbors.get(gg[1],[0])),sum(neighbors[gg[0]]));
-        if gedges1[gg]<np.log(max(1,hh))-1:#filneigh[gg[0]]:
+        if gedges1[gg]<np.log(max(1,hh))-1:#filneigh[gg[0]]:   #认为是由误差所产生的边？
             del gedges1[gg]
     print(len(datapointwts), sum(gedges1.values()), 'coocurence computation time:', time.time() - startcoocurence)
     return (gedges1)
@@ -199,19 +201,19 @@ def prunegraph(gedges,seeds):
     for ss in range(len(seeds)):
         neighbors[ss] = [];
         if (ss,ss) in gedges:
-            del gedges[(ss,ss)]
+            del gedges[(ss,ss)] #删除环
     gedges1  = dict(gedges);
     for gg in gedges1:
-        neighbors[gg[0]].append(gg[1])
+        neighbors[gg[0]].append(gg[1]) #记录由该点引出的边
     depth = 5;
-    gedges2 = {gg:geodist(seeds[gg[0]],seeds[gg[1]]) for gg in gedges};
-    gedges = {gg:geodist(seeds[gg[0]],seeds[gg[1]]) for gg in gedges};
+    gedges2 = {gg:geodist(seeds[gg[0]],seeds[gg[1]]) for gg in gedges}; #复制
+    gedges = {gg:geodist(seeds[gg[0]],seeds[gg[1]]) for gg in gedges}; #复制
     hopedges = []
-    for dd in range(depth):
+    for dd in range(depth): #循环次数
         gedges1 = dict(gedges2);
-        for gg in gedges1:
-            for ss in neighbors[gg[1]]:
-                if not ss == gg[0]:
+        for gg in gedges1: #遍历边
+            for ss in neighbors[gg[1]]: #获取终点
+                if not ss == gg[0]: #若不是起点
                     gedges2[(gg[0], ss)] = min(gedges2[(gg[0],gg[1])] + gedges[(gg[1],ss)],gedges2.get((gg[0], ss),100000))
                     hopedges.append((gg[0],ss))
 #        print(len(gedges2))
